@@ -18,6 +18,7 @@ import org.apache.tinkerpop.gremlin.structure.util.GraphFactory;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__;
 import org.apache.tinkerpop.gremlin.process.traversal.Path;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.util.reference.ReferenceEdge;
 import org.apache.tinkerpop.gremlin.structure.util.reference.ReferenceVertex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -260,12 +261,20 @@ public class GraphApp {
 
             List<Path> paths = result.memory().get(ShortestPathVertexProgram.SHORTEST_PATHS);
 
-            LOGGER.info(String.valueOf(paths.size()));
-            LOGGER.info(paths.get(0).toString());
+            LOGGER.info("Runtime = " + result.memory().getRuntime() + "ms");
+            LOGGER.info("Path's count = " + paths.size());
+            LOGGER.info("Path 0: " + paths.get(0).toString());
 
-            paths.forEach(p -> {LOGGER.info("Path " + paths.indexOf(p)); p.forEach(re -> LOGGER.info(re instanceof  ReferenceVertex ?
-                    g.V(re).next().properties("label").next().toString()
-                    : g.E(re).next().properties("distance").next().toString() + " " + g.E(re).next().toString())); });
+            Integer distance = paths.get(0).stream().filter(re -> re.getValue0() instanceof ReferenceEdge)
+                    .mapToInt(re -> ((Integer) g.E(re.getValue0()).next().properties("distance").next().value()))
+                    .sum();
+
+            LOGGER.info("Path's distance: " + distance);
+
+            paths.forEach(p -> {LOGGER.info("Path " + paths.indexOf(p));
+                    p.forEach(re -> LOGGER.info(re instanceof  ReferenceVertex ?
+                        g.V(re).next().properties("label").next().toString()
+                        : g.E(re).next().properties("distance").next().toString() + " " + g.E(re).next().toString())); });
 
             if (supportsTransactions) {
                 g.tx().commit();
